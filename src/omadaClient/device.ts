@@ -947,10 +947,20 @@ export class DeviceOperations {
         return Array.isArray(result) ? result : [];
     }
 
-    public async setSitesApsPortConfig(apMac: string, payload: unknown, siteId?: string, customHeaders?: CustomHeaders): Promise<unknown> {
+    /** OperationId: modifyApPort. The collection path is GET-only; writes target one port. */
+    public async setSitesApsPortConfig(
+        apMac: string,
+        port: string,
+        payload: unknown,
+        siteId?: string,
+        customHeaders?: CustomHeaders
+    ): Promise<unknown> {
         if (!apMac) throw new Error('An apMac must be provided.');
+        if (!port) throw new Error('A port must be provided.');
         const resolvedSiteId = await this.site.resolveSiteId(siteId);
-        const path = this.buildPath(`/sites/${encodeURIComponent(resolvedSiteId)}/aps/${encodeURIComponent(apMac)}/ports`);
+        const path = this.buildPath(
+            `/sites/${encodeURIComponent(resolvedSiteId)}/aps/${encodeURIComponent(apMac)}/ports/${encodeURIComponent(port)}`
+        );
         const response = await this.request.patch<OmadaApiResponse<unknown>>(path, payload, customHeaders);
         return this.request.ensureSuccess(response);
     }

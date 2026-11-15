@@ -660,8 +660,14 @@ export class OmadaClient {
         return await this.deviceOps.listSitesApsPorts(apMac, siteId, customHeaders);
     }
 
-    public async setSitesApsPortConfig(apMac: string, payload: unknown, siteId?: string, customHeaders?: CustomHeaders): Promise<unknown> {
-        return await this.deviceOps.setSitesApsPortConfig(apMac, payload, siteId, customHeaders);
+    public async setSitesApsPortConfig(
+        apMac: string,
+        port: string,
+        payload: unknown,
+        siteId?: string,
+        customHeaders?: CustomHeaders
+    ): Promise<unknown> {
+        return await this.deviceOps.setSitesApsPortConfig(apMac, port, payload, siteId, customHeaders);
     }
 
     public async setApServiceConfig(apMac: string, payload: unknown, siteId?: string, customHeaders?: CustomHeaders): Promise<unknown> {

@@ -414,7 +414,8 @@ async function applyApConfig(
         case 'wlan-group':
             return await client.setApWlanGroup(apMac, payload, siteId, customHeaders);
         case 'port-config':
-            return await client.setSitesApsPortConfig(apMac, payload, siteId, customHeaders);
+            // The spec addresses one port (PATCH .../ports/{port}); the payload's lanPort names it.
+            return await client.setSitesApsPortConfig(apMac, String(payload.lanPort), payload, siteId, customHeaders);
         case 'channel-config':
             return await client.setApChannelConfig(apMac, payload, siteId, customHeaders);
         case 'afc-config':

@@ -1081,6 +1081,19 @@ describe('omadaClient/device', () => {
     });
 
     describe('Phase 3 AP and gateway configuration methods', () => {
+        it('patches a single AP port at .../ports/{port}, encoding the port id', async () => {
+            const payload = { lanPort: 'LAN/1', status: false };
+            vi.mocked(mockRequest.patch).mockResolvedValue(mockSimpleResponse({}));
+            await deviceOps.setSitesApsPortConfig('AA:BB:CC:DD:EE:FF', 'LAN/1', payload, 'site-1', { 'X-Test': 'value' });
+            expect(mockRequest.patch).toHaveBeenCalledExactlyOnceWith('/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/ports/LAN%2F1', payload, {
+                'X-Test': 'value',
+            });
+        });
+
+        it('requires a port for AP port config', async () => {
+            await expect(deviceOps.setSitesApsPortConfig('AA:BB:CC:DD:EE:FF', '', {}, 'site-1')).rejects.toThrow('A port must be provided.');
+        });
+
         it('uses the official PATCH verb and wlanGroupId contract, preserving encoded scope and headers', async () => {
             const payload = { wlanGroupId: 'group-1' };
             vi.mocked(mockRequest.patch).mockResolvedValue(mockSimpleResponse({}));
@@ -1115,7 +1128,6 @@ describe('omadaClient/device', () => {
             ['setRadiosConfig', '/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/radio-config'],
             ['setApServiceConfig', '/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/service-config'],
             ['setApWlanGroup', '/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/wlan-group'],
-            ['setSitesApsPortConfig', '/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/ports'],
             ['setAntennaGainConfig', '/api/sites/site-1/aps/AA%3ABB%3ACC%3ADD%3AEE%3AFF/antenna-gain'],
             ['setSitesGatewaysGeneralConfig', '/api/sites/site-1/gateways/AA%3ABB%3ACC%3ADD%3AEE%3AFF/general-config'],
         ])('should patch config via %s', async (methodName, expectedPath) => {

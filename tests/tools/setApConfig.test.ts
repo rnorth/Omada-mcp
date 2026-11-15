@@ -81,7 +81,13 @@ describe('tools/setApConfig', () => {
     it.each(cases)('applies and verifies the documented %s family', async (configType, getter, setter, payload) => {
         if (getter) client[getter].mockResolvedValueOnce({}).mockResolvedValue(payload);
         const result = JSON.parse((await call(configType, payload, false)).content[0].text);
-        expect(client[setter]).toHaveBeenCalledExactlyOnceWith('AA:BB:CC:DD:EE:FF', payload, 'site-1', undefined);
+        expect(client[setter]).toHaveBeenCalledExactlyOnceWith(
+            'AA:BB:CC:DD:EE:FF',
+            ...(configType === 'port-config' ? [String((payload as { lanPort: string }).lanPort)] : []),
+            payload,
+            'site-1',
+            undefined
+        );
         expect(result.result.verification.status).toBe(getter && configType !== 'port-config' ? 'verified' : 'unverifiable');
     });
 
