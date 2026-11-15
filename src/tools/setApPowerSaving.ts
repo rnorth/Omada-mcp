@@ -5,6 +5,7 @@ import type { OmadaClient } from '../omadaClient/index.js';
 import { deviceMacSchema, siteInputSchema, wrapMutationToolHandler } from '../server/common.js';
 
 interface ApPowerSavingPayload {
+    mode: number;
     timeEnable: boolean;
     startTimeH?: number;
     startTimeM?: number;
@@ -17,18 +18,31 @@ interface ApPowerSavingPayload {
 
 const baseInputSchema = siteInputSchema.extend({
     apMac: deviceMacSchema.describe('MAC address of the access point to update.'),
-    timeEnable: z.boolean().describe('Enable or disable the time-based power saving schedule.'),
+    mode: z
+        .union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+        .describe(
+            'Power saving mode (required by the controller; this is a full replace): 0=OFF, 1=Standard (uses the time/band settings below), 2=Smart, 3=Deep.'
+        ),
+    timeEnable: z.boolean().describe('Enable or disable the time-based power saving schedule. Can be true only when mode is 1.'),
     startTimeH: z.number().int().min(0).max(23).optional().describe('Schedule start hour, required when timeEnable is true.'),
     startTimeM: z.number().int().min(0).max(59).optional().describe('Schedule start minute, required when timeEnable is true.'),
     endTimeH: z.number().int().min(0).max(23).optional().describe('Schedule end hour, required when timeEnable is true.'),
     endTimeM: z.number().int().min(0).max(59).optional().describe('Schedule end minute, required when timeEnable is true.'),
-    bandEnable: z.boolean().describe('Enable or disable idle-based band power saving.'),
+    bandEnable: z.boolean().describe('Enable or disable idle-based band power saving. Can be true only when mode is 1.'),
     bands: z.array(z.number().int().min(0).max(3)).optional().describe('Band ids for idle-based power saving: 0=2.4GHz, 1=5GHz, 2=5GHz-2, 3=6GHz.'),
     idleDuration: z.number().int().min(60).max(1440).optional().describe('Idle duration in minutes, required when bandEnable is true.'),
     dryRun: z.boolean().optional().default(true).describe('If true, validate and summarize the planned AP power-saving change without applying it.'),
 });
 
 const inputSchema = baseInputSchema.superRefine((value, ctx) => {
+    if (value.mode !== 1) {
+        for (const field of ['timeEnable', 'bandEnable'] as const) {
+            if (value[field]) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: `${field} can be true only when mode is 1 (Standard).` });
+            }
+        }
+    }
+
     if (value.timeEnable) {
         for (const field of ['startTimeH', 'startTimeM', 'endTimeH', 'endTimeM'] as const) {
             if (value[field] === undefined) {
@@ -73,8 +87,9 @@ export function registerSetApPowerSavingTool(server: McpServer, client: OmadaCli
                 result,
             }),
             async (args) => {
-                const { apMac, siteId, customHeaders, dryRun } = inputSchema.parse(args);
+                const { apMac, siteId, customHeaders, dryRun, mode } = inputSchema.parse(args);
                 const powerSavingPayload: ApPowerSavingPayload = {
+                    mode,
                     timeEnable: args.timeEnable,
                     startTimeH: args.startTimeH,
                     startTimeM: args.startTimeM,

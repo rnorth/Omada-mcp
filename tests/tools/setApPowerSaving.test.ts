@@ -30,6 +30,7 @@ describe('tools/setApPowerSaving', () => {
         const result = await toolHandler(
             {
                 apMac: 'AA:BB:CC:DD:EE:FF',
+                mode: 1,
                 timeEnable: false,
                 bandEnable: true,
                 bands: [1],
@@ -53,6 +54,7 @@ describe('tools/setApPowerSaving', () => {
                     dryRun: true,
                     before: { supportPowerSaving: true, timeEnable: false, bandEnable: false },
                     plannedConfig: {
+                        mode: 1,
                         timeEnable: false,
                         bandEnable: true,
                         bands: [1],
@@ -70,7 +72,7 @@ describe('tools/setApPowerSaving', () => {
         registerSetApPowerSavingTool(mockServer, mockClient);
 
         await expect(
-            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', timeEnable: false, bandEnable: false }, { sessionId: 's1' })
+            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 1, timeEnable: false, bandEnable: false }, { sessionId: 's1' })
         ).rejects.toThrow('AP AA:BB:CC:DD:EE:FF does not support power-saving configuration.');
     });
 
@@ -81,6 +83,7 @@ describe('tools/setApPowerSaving', () => {
             {
                 dryRun: false,
                 apMac: 'AA:BB:CC:DD:EE:FF',
+                mode: 1,
                 timeEnable: true,
                 startTimeH: 1,
                 startTimeM: 0,
@@ -97,6 +100,7 @@ describe('tools/setApPowerSaving', () => {
         expect(mockClient.setSitesApsPowerSaving).toHaveBeenCalledWith(
             'AA:BB:CC:DD:EE:FF',
             {
+                mode: 1,
                 timeEnable: true,
                 startTimeH: 1,
                 startTimeM: 0,
@@ -111,11 +115,47 @@ describe('tools/setApPowerSaving', () => {
         );
     });
 
+    it('sends mode 0 (OFF) in the PUT body', async () => {
+        registerSetApPowerSavingTool(mockServer, mockClient);
+
+        await toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 0, timeEnable: false, bandEnable: false }, { sessionId: 's1' });
+
+        expect(mockClient.setSitesApsPowerSaving).toHaveBeenCalledWith(
+            'AA:BB:CC:DD:EE:FF',
+            expect.objectContaining({ mode: 0, timeEnable: false, bandEnable: false }),
+            undefined,
+            undefined
+        );
+    });
+
+    it('rejects a missing or invalid mode', async () => {
+        registerSetApPowerSavingTool(mockServer, mockClient);
+
+        await expect(async () =>
+            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', timeEnable: false, bandEnable: false }, { sessionId: 's1' })
+        ).rejects.toThrow();
+        await expect(async () =>
+            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 4, timeEnable: false, bandEnable: false }, { sessionId: 's1' })
+        ).rejects.toThrow();
+    });
+
+    it('rejects timeEnable or bandEnable unless mode is Standard', async () => {
+        registerSetApPowerSavingTool(mockServer, mockClient);
+
+        await expect(
+            toolHandler(
+                { dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 2, timeEnable: false, bandEnable: true, bands: [1], idleDuration: 120 },
+                { sessionId: 's1' }
+            )
+        ).rejects.toThrow();
+        expect(mockClient.setSitesApsPowerSaving).not.toHaveBeenCalled();
+    });
+
     it('rejects missing schedule fields when time-based saving is enabled', async () => {
         registerSetApPowerSavingTool(mockServer, mockClient);
 
         await expect(
-            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', timeEnable: true, bandEnable: false }, { sessionId: 's1' })
+            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 1, timeEnable: true, bandEnable: false }, { sessionId: 's1' })
         ).rejects.toThrow();
     });
 
@@ -123,13 +163,13 @@ describe('tools/setApPowerSaving', () => {
         registerSetApPowerSavingTool(mockServer, mockClient);
 
         await expect(
-            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', timeEnable: false, bandEnable: true }, { sessionId: 's1' })
+            toolHandler({ dryRun: false, apMac: 'AA:BB:CC:DD:EE:FF', mode: 1, timeEnable: false, bandEnable: true }, { sessionId: 's1' })
         ).rejects.toThrow();
     });
     it('defaults omitted dryRun to preview through the registered schema', async () => {
         registerSetApPowerSavingTool(mockServer, mockClient);
         const result = (await toolHandler(
-            { apMac: 'AA:BB:CC:DD:EE:FF', timeEnable: false, bandEnable: true, bands: [1], idleDuration: 120 },
+            { apMac: 'AA:BB:CC:DD:EE:FF', mode: 1, timeEnable: false, bandEnable: true, bands: [1], idleDuration: 120 },
             { sessionId: 'preview' }
         )) as { content: { text: string }[]; structuredContent: Record<string, unknown> };
         const summary = JSON.parse(result.content[0].text);

@@ -239,6 +239,7 @@ describe('omadaClient/device', () => {
             (mockRequest.ensureSuccess as ReturnType<typeof vi.fn>).mockReturnValue({ success: true });
 
             const payload = {
+                mode: 1,
                 timeEnable: false,
                 bandEnable: true,
                 bands: [1],

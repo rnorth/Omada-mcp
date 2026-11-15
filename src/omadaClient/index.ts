@@ -609,6 +609,7 @@ export class OmadaClient {
     public async setSitesApsPowerSaving(
         apMac: string,
         payload: {
+            mode: number;
             timeEnable: boolean;
             bandEnable: boolean;
             startTimeH?: number;
